@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tank & Tackle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: weathered fisherman's tackle box: calm, outdoorsy, a little rugged
+   IDEA: an old canvas tackle bag and a waterproof field guide
+   PICTURE: the live 3D world fills the screen; panels float over it like gear cards
+   COLOUR and TYPE: deep spruce-green canvas, brass hardware, bobber orange-red; Alfa Slab One + Nunito
+   LAYOUT: HUD chips top-left, gear buttons top-right, fishing meters bottom-center, tank panel docked right */
+:root{color-scheme:dark;--bg:#0d211b;--panel:rgba(16,36,30,.96);--card:rgba(255,255,255,.06);--line:rgba(224,178,82,.28);--ink:#f4efe2;--dim:#b4c4b8;--brass:#e0b252;--acc:#ff5a36;--good:#79d48e;--warn:#ffcf4a;--bad:#ff6464;--water:#4fb0dc}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.5 Nunito,system-ui,sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+h2,h3,.title,.fc-name{font-family:'Alfa Slab One',Georgia,serif;font-weight:400;margin:0;line-height:1.1}
+h2{font-size:28px}h3{font-size:17px;margin:18px 0 8px;color:var(--brass)}
+button{font:inherit;font-weight:800;min-height:42px;padding:0 15px;border-radius:11px;border:0;background:var(--acc);color:#fff;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.4);white-space:nowrap}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.4)}
+button.ghost{background:rgba(255,255,255,.09);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 3px 0 rgba(0,0,0,.35)}
+button.small{min-height:36px;padding:0 12px;font-size:14px}
+button.on{background:var(--brass);color:#241a06}
+button:disabled{opacity:.38;cursor:not-allowed}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+select,input[type=range]{font:inherit;font-size:16px;background:#0d211b;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:6px 8px;min-height:40px}
+input[type=range]{width:100%;accent-color:var(--acc);padding:0}
+.dim{color:var(--dim)}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.price{color:var(--brass);font-weight:800}.price.big{font-size:20px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}.row.tight{margin-top:0}
+.ico{width:18px;height:18px;vertical-align:-4px}
+/* HUD */
+.hud{position:fixed;top:12px;left:12px;display:flex;gap:8px;flex-wrap:wrap;max-width:62vw;pointer-events:none;z-index:2}
+.chip{background:var(--panel);padding:7px 12px;border-radius:11px;font-weight:800;white-space:nowrap;box-shadow:0 3px 0 rgba(0,0,0,.35);border:1px solid var(--line)}
+.chip.money{color:var(--brass);font-size:17px}.chip.money.neg{color:var(--bad)}
+.chip.lvl{display:flex;gap:8px;align-items:center}.xp{display:inline-block;width:70px;height:8px;background:rgba(255,255,255,.12);border-radius:5px;overflow:hidden}.xp i{display:block;height:100%;background:var(--brass)}
+.btns{position:fixed;top:12px;right:12px;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end;max-width:40vw;z-index:2}
+.btns button{background:var(--panel);border:1px solid var(--line);box-shadow:0 3px 0 rgba(0,0,0,.35)}
+#tankbtn.alert{background:var(--acc)}
+#prompt{position:fixed;bottom:96px;left:50%;transform:translateX(-50%);display:none;font-size:17px;z-index:2}#prompt.on{display:block}
+#help{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);font-size:13px;background:rgba(0,0,0,.45);padding:6px 12px;border-radius:10px;white-space:nowrap;z-index:1}
+#toast{position:fixed;top:62px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(520px,92vw);z-index:6}
+#toast div{background:var(--panel);border-left:4px solid var(--good);padding:8px 14px;border-radius:10px;font-weight:700;animation:pop .25s ease-out;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+@keyframes pop{from{transform:translateY(-8px);opacity:0}}
+#tip{position:fixed;left:12px;bottom:52px;width:min(380px,calc(100vw - 24px));background:#1c3a2e;border:2px solid var(--brass);border-radius:14px;padding:12px 14px;display:none;z-index:7;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+#tip.on{display:block}#tip b{color:var(--brass);font-family:'Alfa Slab One',serif;font-weight:400}#tip p{margin:4px 0 8px}
+/* fishing */
+#fishui{position:fixed;inset:auto 0 16px 0;display:none;flex-direction:column;align-items:center;gap:8px;z-index:2;pointer-events:none}
+body.fishing #fishui{display:flex}body.fishing .walkonly,body.tankmode .walkonly{display:none!important}
+#fishmsg{font-family:'Alfa Slab One',serif;font-size:24px;text-shadow:0 2px 0 rgba(0,0,0,.7),0 0 12px rgba(0,0,0,.8);text-align:center;padding:0 12px}
+#fishmsg.hot{color:var(--warn);animation:pulse .3s infinite alternate}@keyframes pulse{to{transform:scale(1.06)}}
+.meter{background:var(--panel);border-radius:12px;padding:7px 12px;width:min(460px,92vw);display:none;border:1px solid var(--line)}.meter.on{display:block}
+.meter .lbl{display:flex;justify-content:space-between;font-size:13px;color:var(--dim)}
+.meter .bar{height:14px;position:relative}.meter .zone{position:absolute;top:0;bottom:0;background:rgba(121,212,142,.35);border-left:2px solid var(--good);border-right:2px solid var(--good);display:none}
+.bar{height:9px;background:rgba(255,255,255,.12);border-radius:6px;overflow:hidden;margin:3px 0 6px}.bar.thin{height:5px;width:120px}
+.bar i{display:block;height:100%;border-radius:6px;background:var(--acc);transition:width .1s}.bar i.good{background:var(--good)}.bar i.warn{background:var(--warn)}.bar i.bad{background:var(--bad)}
+#m-progress i{background:var(--water)}
+#baitbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;pointer-events:auto;max-width:min(900px,96vw)}
+.bait{min-height:38px;font-size:13px;padding:0 10px;background:var(--panel);border:1px solid var(--line)}.bait.sel{background:var(--brass);color:#241a06}
+.bait span{opacity:.6;margin-right:6px}.bait em{font-style:normal;opacity:.75;margin-left:6px}
+#baitbar .style{flex-basis:100%;text-align:center;font-size:13px;color:var(--dim);text-shadow:0 1px 2px #000}
+#leave{position:fixed;top:12px;right:12px;display:none;z-index:3;background:var(--panel)!important}#fishui button.ghost{background:var(--panel)}#finderlbl{text-shadow:0 1px 3px #000}body.fishing #leave{display:block}
+#icectl{display:none;gap:8px;pointer-events:auto}body.icing #icectl{display:flex}body.icing #baitbar .style{display:none}
+#icectl button{min-width:90px;min-height:52px;font-size:16px}#icectl button.held{background:var(--brass);color:#241a06}
+#finder{position:fixed;right:14px;top:70px;width:200px;height:260px;border-radius:12px;border:3px solid #333;display:none;z-index:2;background:#06141c}body.icing #finder{display:block}
+#finderlbl{position:fixed;right:14px;top:336px;width:200px;text-align:center;font-size:12px;color:var(--dim);display:none}body.icing #finderlbl{display:block}
+#netring{position:fixed;left:50%;top:50%;width:220px;height:220px;margin:-110px 0 0 -110px;display:none;z-index:4;pointer-events:none}#netring.on{display:block}
+#netring:before{content:'';position:absolute;inset:55px;border:6px solid var(--good);border-radius:50%;box-shadow:0 0 20px rgba(121,212,142,.6)}
+#netring:after{content:'';position:absolute;inset:0;border:5px solid #fff;border-radius:50%;transform:scale(var(--s,1))}
+/* panels */
+.panel,.modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(720px,94vw);max-height:88vh;overflow:auto;background:var(--panel);border-radius:18px;padding:20px;border:2px solid var(--line);display:none;box-shadow:0 24px 70px rgba(0,0,0,.55);z-index:5}
+.panel.wide{width:min(980px,96vw)}.modal{z-index:8;width:min(760px,96vw)}
+.panel.open,.modal.open{display:block}
+.phead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+.sub{color:var(--dim);margin:4px 0 0}.sci{font-style:italic;color:var(--dim);font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.card{background:var(--card);border-radius:13px;padding:11px;display:flex;flex-direction:column;gap:4px;border:1px solid rgba(255,255,255,.05);text-align:left;color:var(--ink);font-weight:400;box-shadow:none;min-height:0;white-space:normal}
+.card .nm{font-weight:800;font-size:16px}.card img{width:100%;max-width:200px;height:auto;align-self:center}
+.card.locked{opacity:.55}.fishcard{cursor:pointer;padding:11px}.fishcard:hover{border-color:var(--brass)}
+.thumbbtn{background:none;box-shadow:none;padding:0;min-height:0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.tab{background:none;box-shadow:none;color:var(--dim);min-height:36px;padding:0 10px}.tab.on{color:var(--brass);background:rgba(224,178,82,.12)}
+.tag{display:inline-block;padding:1px 8px;border-radius:8px;font-size:12px;font-weight:800;background:var(--warn);color:#2a2000;margin:0 4px 3px 0}.tag.raised{background:var(--good);color:#082a12}.tag.wild{background:#8fc8e0;color:#0a2430}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin:10px 0}
+.stats div{background:var(--card);border-radius:10px;padding:8px}.stats b{display:block;font-size:18px}.stats small{color:var(--dim)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px 16px;margin-top:10px}
+.grid2 div{border-bottom:1px solid rgba(255,255,255,.06);padding:5px 0}.grid2 b{display:block;font-size:12px;color:var(--brass);text-transform:none}
+.fact{background:rgba(224,178,82,.09);border-left:4px solid var(--brass);padding:9px 12px;border-radius:0 9px 9px 0;margin:10px 0}
+.npcline{font-style:italic;color:#e8ddc2;margin:6px 0 4px}.npcline.big{font-size:18px}
+.page{background:#efe4c6;color:#2a2214;border-radius:6px;padding:16px 18px;font-family:Georgia,serif;font-size:16px;line-height:1.6;margin:8px 0;box-shadow:inset 0 0 30px rgba(120,90,40,.25)}.page.locked{opacity:.5}
+.catch{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.catch img{max-width:100%}.catch>div{flex:1 1 260px}
+.map{width:100%;height:auto;margin-bottom:10px;border-radius:16px}.pin circle{fill:var(--acc);stroke:#fff;stroke-width:3}.pin text{font:800 14px Nunito;fill:#2a2214}.pin.lock circle{fill:#8a8a80}.pin .lk{fill:#fff;font-size:13px}.pin.here circle{fill:var(--brass)}
+details{background:var(--card);border-radius:10px;padding:8px 12px;margin:8px 0}summary{cursor:pointer;font-weight:800;color:var(--brass)}
+table.mini{width:100%;border-collapse:collapse;font-size:13px}table.mini td,table.mini th{border-bottom:1px solid rgba(255,255,255,.08);padding:5px;text-align:left;vertical-align:top}
+/* tank view */
+#tankpanel{position:fixed;top:0;right:0;bottom:0;width:400px;background:var(--panel);border-left:2px solid var(--line);overflow:auto;padding:16px;display:none;z-index:4}
+body.tankmode #tankpanel{display:block}body.tankmode .hud{max-width:calc(100vw - 440px)}
+.tp-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.eyebrow{font-size:12px;color:var(--brass);font-weight:800}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}.chips .c{background:var(--card);border-radius:8px;padding:3px 8px;font-size:13px;font-weight:800}
+.note{background:rgba(255,207,74,.12);border-left:4px solid var(--warn);padding:8px 10px;border-radius:0 8px 8px 0;margin:10px 0;font-size:14px}
+.care{background:var(--card);border-radius:11px;padding:10px;margin:8px 0}.care .lbl{display:flex;justify-content:space-between;gap:8px}.care p{margin:4px 0;font-size:13px}
+.flist{display:flex;flex-direction:column;gap:6px}
+.frow{display:flex;gap:10px;align-items:center;background:var(--card);border-radius:10px;padding:6px 8px;text-align:left;box-shadow:none;color:var(--ink);font-weight:400;min-height:0;white-space:normal;width:100%}
+.frow.on{outline:2px solid var(--brass)}.frow img{width:64px;height:32px}.frow span{flex:1}.frow small{display:block;color:var(--dim)}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}.dot.good{background:var(--good)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
+.fcard{background:var(--card);border-radius:13px;padding:12px;margin-bottom:6px}.fcard img.big{width:100%;max-width:300px;display:block;margin:0 auto}.fc-name{font-size:22px}
+.status{font-size:13px;font-weight:800;margin:4px 0}
+#joy{position:fixed;left:22px;bottom:22px;width:120px;height:120px;border-radius:50%;background:rgba(0,0,0,.25);border:2px solid rgba(255,255,255,.3);display:none;touch-action:none;z-index:2}#joy.on{display:block}body.fishing #joy,body.tankmode #joy{display:none}
+#joy i{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.55)}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .5s;z-index:9}#fade.on{opacity:1}
+#splash{position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,rgba(8,30,24,.35),rgba(6,22,18,.92));z-index:10;padding:16px}
+#splash.gone{display:none}#splash .box{max-width:580px;text-align:center}
+#splash .title{font-size:clamp(46px,10vw,86px);color:#fff;text-shadow:0 5px 0 #0b2018}
+#splash .tag2{color:var(--brass);font-weight:800;letter-spacing:.5px}#splash p{font-size:17px;color:#dfe9e2}
+@media(max-width:760px){
+  body.tankmode #tankpanel{top:auto;left:0;width:auto;height:48vh;border-left:0;border-top:2px solid var(--line)}body.tankmode .hud{max-width:none}
+  #help{display:none}h2{font-size:23px}.btns{max-width:none;top:auto;bottom:12px;right:8px;flex-direction:column;align-items:stretch}.hud{max-width:none;right:8px}
+  #prompt{bottom:250px}#finder{width:140px;height:190px;top:64px}#finderlbl{display:none!important}#fishmsg{font-size:19px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="c" tabindex="0" aria-label="Game world"></canvas>
+<div class="hud" id="hud"></div>
+<div class="btns walkonly">
+  <button id="tankbtn" data-act="open-tanks">Tanks (T)</button>
+  <button data-act="open-guide">Field Guide (G)</button>
+  <button data-act="open-tackle">Tackle (B)</button>
+  <button data-act="view" id="viewbtn">1st person</button>
+  <button data-act="sound" id="soundbtn">Sound on</button>
+  <button data-act="quality" id="qualbtn">Graphics: high</button>
+</div>
+<button id="prompt" class="walkonly" data-act="interact"></button>
+<div id="help" class="walkonly">WASD move · Shift run · drag to look · scroll zoom · V view · E interact · T tanks · G guide</div>
+<div id="toast" aria-live="polite"></div>
+<div id="tip" role="status"><b>Tip</b><p id="tiptext"></p><button class="small" data-act="tipnext">Got it</button></div>
+<div id="fishui">
+  <div id="fishmsg"></div>
+  <div class="meter" id="m-power"><div class="lbl"><span>Cast power</span><span class="v"></span></div><div class="bar"><i></i></div></div>
+  <div class="meter" id="m-speed"><div class="lbl"><span>Reel speed (hold)</span><span class="v"></span></div><div class="bar"><div class="zone"></div><i></i></div></div>
+  <div class="meter" id="m-tension"><div class="lbl"><span>Line tension</span><span class="v"></span></div><div class="bar"><i></i></div></div>
+  <div class="meter" id="m-progress"><div class="lbl"><span>Reel in</span><span class="v"></span></div><div class="bar"><i></i></div></div>
+  <div class="meter" id="m-depth"><div class="lbl"><span>Depth</span><span class="v"></span></div><div class="bar"><i></i></div></div>
+  <div id="icectl"><button id="btn-drop" class="ghost">Drop (S)</button><button id="btn-jig">Jig (Space)</button><button id="btn-up" class="ghost">Reel up (W)</button></div>
+  <div id="baitbar"></div>
+</div>
+<canvas id="finder" width="200" height="260" aria-label="Fish finder"></canvas><div id="finderlbl">Fish finder: arcs are fish, orange dot is your jig</div>
+<div id="netring"></div>
+<button id="leave" class="ghost" data-act="leave">Leave (Q)</button>
+<div id="joy"><i></i></div>
+<section class="panel" id="panel"></section>
+<section class="modal" id="modal" aria-label="Fish details"></section>
+<aside id="tankpanel" aria-label="Tank"></aside>
+<div id="fade"></div>
+<div id="splash"><div class="box">
+  <div class="title">Tank &amp; Tackle</div>
+  <div class="tag2">Catch it. Raise it. Sell it.</div>
+  <p>Old Gus left you his cabin on Willow Lake, a fish tank, a beat-up truck and a logbook with pages missing. Fish six wild places, raise what you catch, and track down the legendary fish Gus never landed.</p>
+  <p id="savenote" style="color:var(--warn)"></p>
+  <button id="start" style="font-size:20px;min-height:56px;padding:0 34px">Play</button>
+  <p class="dim" style="font-size:13px">Sound on. Your game saves in this browser.</p>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/state.js"></script>
+<script src="js/core.js"></script>
+<script src="js/fishmesh.js"></script>
+<script src="js/spots.js"></script>
+<script src="js/player.js"></script>
+<script src="js/fishing.js"></script>
+<script src="js/tank.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
