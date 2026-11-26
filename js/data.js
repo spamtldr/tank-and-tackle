@@ -321,5 +321,6 @@ const TIPS = {
   order: 'Buyers pay far more than market price, but they want specific fish at a minimum size. Bring them from your tanks in the truck’s live well.',
   well: 'Fish in your truck’s live well slowly lose health. Better live wells keep them healthy longer. Move them into a home tank when you get back.',
   debt: 'You’re in the red. Power bills keep running even when you’re broke. Sell some fish to get back above zero; you can’t buy anything until then.',
+  online: 'Join the Anglers board (top right) to see your friends’ catches, species records and who lands the legends first. You also get a cloud save code.',
   legend: 'Every spot has a legendary fish. Gus’s logbook pages hold the clues: the time, bait and place it bites.'
 };

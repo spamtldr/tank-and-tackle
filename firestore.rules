@@ -1,0 +1,203 @@
+rules_version = '2';
+// Full Firestore rules for the shared Firebase project spark-up-81558.
+// Paste ALL of this into Firebase console > Firestore Database > Rules, then Publish.
+// Part 1 is Spark Up's rules, unchanged. Part 2 adds Tank & Tackle (collections starting with tt_).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    // ================= PART 1: SPARK UP (unchanged) =================
+    function ownsPlayer(pid) {
+      return signedIn() && (request.auth.uid == pid ||
+        (exists(/databases/$(database)/documents/owners/$(pid)) &&
+         get(/databases/$(database)/documents/owners/$(pid)).data.uid == request.auth.uid));
+    }
+
+    function validMember() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'year', 'stars', 'earned', 'ce', 'look', 'badges', 'joined', 'updated'])
+        && d.name is string && d.name.size() >= 2 && d.name.size() <= 24
+        && d.year is int && d.year >= 1 && d.year <= 10
+        && d.stars is int && d.stars >= 0 && d.stars <= 1000
+        && (!('earned' in d) || (d.earned is int && d.earned >= 0 && d.earned <= 100000000))
+        && (!('ce' in d) || d.ce is bool)
+        && (!('look' in d) || (d.look is map && d.look.size() <= 10))
+        && (!('badges' in d) || (d.badges is list && d.badges.size() <= 20));
+    }
+
+    match /members/{pid} {
+      allow read: if true;
+      allow create: if signedIn() && request.auth.uid == pid && validMember();
+      allow update: if ownsPlayer(pid) && validMember();
+      allow delete: if false;
+    }
+
+    match /owners/{pid} {
+      allow read: if false;
+      allow create: if signedIn() && request.auth.uid == pid
+        && request.resource.data.keys().hasOnly(['uid', 'code'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.code is string && request.resource.data.code.size() == 10;
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'code'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.code == resource.data.code;
+      allow delete: if false;
+    }
+
+    match /saves/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.pid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['pid', 'data', 'updated'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 60000;
+      allow update: if ownsPlayer(resource.data.pid)
+        && request.resource.data.pid == resource.data.pid
+        && request.resource.data.keys().hasOnly(['pid', 'data', 'updated'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 60000;
+      allow delete: if false;
+    }
+
+    match /news/{postId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 24
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 120
+        && request.resource.data.at == request.time;
+      allow update, delete: if false;
+    }
+
+    match /reacts/{rid} {
+      allow read: if true;
+      allow create, update: if ownsPlayer(request.resource.data.pid)
+        && rid == request.resource.data.post + '_' + request.resource.data.pid
+        && request.resource.data.keys().hasOnly(['post', 'pid', 'e'])
+        && request.resource.data.post is string && request.resource.data.post.size() <= 40
+        && request.resource.data.e in ['zap', 'lol', 'clap', 'skull', 'fire', 'heart', 'wow', 'sad'];
+      allow delete: if ownsPlayer(resource.data.pid);
+    }
+
+    match /comments/{cid} {
+      allow read: if true;
+      allow create: if ownsPlayer(request.resource.data.pid)
+        && request.resource.data.keys().hasOnly(['post', 'pid', 'name', 'text', 'at'])
+        && request.resource.data.post is string && request.resource.data.post.size() <= 40
+        && request.resource.data.name is string && request.resource.data.name.size() <= 24
+        && request.resource.data.text is string
+        && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 140
+        && request.resource.data.at == request.time;
+      allow update: if false;
+      allow delete: if ownsPlayer(resource.data.pid);
+    }
+
+    match /accounts/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['pid', 'code', 'user'])
+        && request.resource.data.user is string && request.resource.data.user.size() <= 20;
+      allow delete: if false;
+    }
+
+    match /extras/{pid}/{doc} {
+      allow read: if true;
+      allow write: if ownsPlayer(pid) && request.resource.data.size() <= 30;
+    }
+
+    // ================= PART 2: TANK & TACKLE =================
+    function ttOwns(pid) {
+      return signedIn() && pid is string && (request.auth.uid == pid ||
+        (exists(/databases/$(database)/documents/tt_owners/$(pid)) &&
+         get(/databases/$(database)/documents/tt_owners/$(pid)).data.uid == request.auth.uid));
+    }
+    function ttName(n) { return n is string && n.size() >= 2 && n.size() <= 20; }
+
+    function ttAngler() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'level', 'catches', 'species', 'legends', 'best', 'updated'])
+        && ttName(d.name)
+        && d.level is int && d.level >= 1 && d.level <= 200
+        && d.catches is int && d.catches >= 0 && d.catches <= 1000000
+        && d.species is int && d.species >= 0 && d.species <= 60
+        && d.legends is int && d.legends >= 0 && d.legends <= 10
+        && (!('best' in d) || (d.best is map && d.best.size() <= 8));
+    }
+    // Anglers board: anyone can read; only the angler can write their own card.
+    match /tt_anglers/{pid} {
+      allow read: if true;
+      allow create: if signedIn() && request.auth.uid == pid && ttAngler();
+      allow update: if ttOwns(pid) && ttAngler();
+      allow delete: if false;
+    }
+    // Which device owns each angler card (for moving a game with a save code). Never readable.
+    match /tt_owners/{pid} {
+      allow read: if false;
+      allow create: if signedIn() && request.auth.uid == pid
+        && request.resource.data.keys().hasOnly(['uid', 'code'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.code is string && request.resource.data.code.size() == 10;
+      allow update: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'code'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.code == resource.data.code;
+      allow delete: if false;
+    }
+    // Cloud saves, stored under the secret save code. Fetch only with the code; never listable.
+    match /tt_saves/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && request.resource.data.pid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['pid', 'data', 'updated'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 300000;
+      allow update: if ttOwns(resource.data.pid)
+        && request.resource.data.pid == resource.data.pid
+        && request.resource.data.keys().hasOnly(['pid', 'data', 'updated'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 300000;
+      allow delete: if false;
+    }
+    // Species records: one per species; a write must beat the current weight.
+    function ttRecord() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['pid', 'name', 'L', 'W', 'traits', 'legend', 'at'])
+        && ttOwns(d.pid) && ttName(d.name)
+        && d.L is number && d.L > 0 && d.L < 200
+        && d.W is number && d.W > 0 && d.W < 1000
+        && d.traits is list && d.traits.size() <= 6
+        && d.legend is string && d.legend.size() <= 10
+        && d.at == request.time;
+    }
+    match /tt_records/{sp} {
+      allow read: if true;
+      allow create: if ttRecord();
+      allow update: if ttRecord() && request.resource.data.W > resource.data.W;
+      allow delete: if false;
+    }
+    // Legend wall: first angler to catch each legendary fish. Can never be overwritten.
+    match /tt_legends/{spot} {
+      allow read: if true;
+      allow create: if ttOwns(request.resource.data.pid)
+        && request.resource.data.keys().hasOnly(['pid', 'name', 'L', 'W', 'at'])
+        && ttName(request.resource.data.name)
+        && request.resource.data.L is number && request.resource.data.W is number
+        && request.resource.data.at == request.time;
+      allow update, delete: if false;
+    }
+    // News feed: game-written posts about records, legends and rare catches.
+    match /tt_feed/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'sp', 'traits', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && ttName(request.resource.data.name)
+        && request.resource.data.text is string && request.resource.data.text.size() <= 140
+        && request.resource.data.sp is string && request.resource.data.sp.size() <= 20
+        && request.resource.data.traits is list && request.resource.data.traits.size() <= 6
+        && request.resource.data.at == request.time;
+      allow update, delete: if false;
+    }
+  }
+}

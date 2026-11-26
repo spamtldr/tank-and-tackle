@@ -27,7 +27,7 @@ function svgIcon(n) {
   return `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
 }
 // ---------- panels ----------
-function openPanel(html, wide) { const p = $('panel'); p.innerHTML = html; p.classList.toggle('wide', !!wide); p.classList.add('open'); for (const k in keys) keys[k] = false; dragging = false; }
+function openPanel(html, wide) { if (typeof onlineOpen !== 'undefined') onlineOpen = false; const p = $('panel'); p.innerHTML = html; p.classList.toggle('wide', !!wide); p.classList.add('open'); for (const k in keys) keys[k] = false; dragging = false; }
 function closeAll() { document.querySelectorAll('.panel.open,.modal.open').forEach(p => p.classList.remove('open')); }
 function closeTop() { const m = $('modal'); if (m.classList.contains('open')) { m.classList.remove('open'); return true; } const p = $('panel'); if (p.classList.contains('open')) { if (p.dataset.lock) return true; p.classList.remove('open'); return true; } return false; }
 const head = (t, sub) => `<div class="phead"><div><h2>${t}</h2>${sub ? `<p class="sub">${sub}</p>` : ''}</div><button class="ghost small" data-act="close">Close</button></div>`;
@@ -153,6 +153,7 @@ document.addEventListener('click', e => {
   const findOwned = fid => { for (const t of S.tanks) { const f = t.fish.find(q => q.id === +fid); if (f) return [f, t]; } return [S.truck.find(q => q.id === +fid), null]; };
   const pay = p => { if (S.money < p || S.money < 0) { toast('Not enough money.', 'var(--bad)'); return false; } S.money -= p; SFX.coin(); return true; };
   const tk = TV.tank;
+  if (typeof onlineClick === 'function' && onlineClick(a, b)) { hud(); save(); return; }
   switch (a) {
     case 'close': delete $('panel').dataset.lock; closeAll(); break;
     case 'mclose': $('modal').classList.remove('open'); break;

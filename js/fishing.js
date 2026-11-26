@@ -217,11 +217,11 @@ function catchIt() {
   const x = F.fish; F.st = 'result'; bob.visible = false; lureM.visible = false; fline.visible = F.mode === 'ice';
   if (fightFish) { scene.remove(fightFish); fightFish = null; } splash(F.pos, 10, true);
   const newSp = !S.guide[x.sp]; const rec = S.guide[x.sp] ? x.L > S.guide[x.sp].bestL : true;
-  logGuide(x); S.catches++; if (x.legend) S.legends[x.legend] = 1;
+  logGuide(x); S.catches++; if (x.legend) S.legends[x.legend] = 1; if (typeof onlineCatch === 'function') onlineCatch(x);
   const xp = Math.round(10 + weightOf(x.sp, x.L) * 4 + x.traits.length * 25 + (newSp ? 30 : 0) + (x.legend ? 500 : 0)); addXP(xp);
   save(); showCatch(x, { newSp, rec, xp });
 }
-function addXP(n) { const before = level(); S.xp += n; const after = level(); if (after > before) { toast('Level up! You are now level ' + after + '.', 'var(--brass)'); SFX.coin(); const un = SPOT_ORDER.filter(id => SPOTS[id].lvl === after); un.forEach(id => toast(SPOTS[id].name + ' unlocked. Drive there in your truck.', 'var(--brass)')); } }
+function addXP(n) { const before = level(); S.xp += n; const after = level(); if (after > before) { toast('Level up! You are now level ' + after + '.', 'var(--brass)'); SFX.coin(); const un = SPOT_ORDER.filter(id => SPOTS[id].lvl === after); un.forEach(id => toast(SPOTS[id].name + ' unlocked. Drive there in your truck.', 'var(--brass)')); if (typeof syncSoon === 'function') syncSoon(); } }
 function afterCatch() { F.fish = null; if (mode === 'fish' || mode === 'ice') { readyState(); renderBaitBar(); } }
 
 // ---------- ice ----------

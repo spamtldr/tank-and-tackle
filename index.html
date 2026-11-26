@@ -25,6 +25,8 @@ button.small{min-height:36px;padding:0 12px;font-size:14px}
 button.on{background:var(--brass);color:#241a06}
 button:disabled{opacity:.38;cursor:not-allowed}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+input[type=text],input:not([type]){font:inherit;font-size:16px;background:#0d211b;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:8px 10px;min-height:40px;flex:1 1 160px}
+.rank{width:26px;text-align:center;color:var(--brass);font-family:'Alfa Slab One',serif;font-weight:400}button.dimmed{opacity:.7}
 select,input[type=range]{font:inherit;font-size:16px;background:#0d211b;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:6px 8px;min-height:40px}
 input[type=range]{width:100%;accent-color:var(--acc);padding:0}
 .dim{color:var(--dim)}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
@@ -128,6 +130,7 @@ body.tankmode #tankpanel{display:block}body.tankmode .hud{max-width:calc(100vw -
 <div class="btns walkonly">
   <button id="tankbtn" data-act="open-tanks">Tanks (T)</button>
   <button data-act="open-guide">Field Guide (G)</button>
+  <button data-act="open-online" id="onlinebtn">Anglers</button>
   <button data-act="open-tackle">Tackle (B)</button>
   <button data-act="view" id="viewbtn">1st person</button>
   <button data-act="sound" id="soundbtn">Sound on</button>
@@ -173,6 +176,7 @@ body.tankmode #tankpanel{display:block}body.tankmode .hud{max-width:calc(100vw -
 <script src="js/fishing.js"></script>
 <script src="js/tank.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/online.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
